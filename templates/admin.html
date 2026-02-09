@@ -176,11 +176,11 @@
                 <div class="student-roll">Roll: {{ student.roll_number }}</div>
                 <div style="display: flex; gap: 5px; margin-top: 10px;">
                     <button type="button" class="btn btn-primary" style="flex: 1; padding: 8px;"
-                        onclick="editStudent({{ student.id }}, '{{ student.name }}', '{{ student.roll_number }}')">
+                        onclick="editStudent('{{ student.id }}', '{{ student.name }}', '{{ student.roll_number }}')">
                         ✏️ Edit
                     </button>
                     <button type="button" class="btn btn-danger" style="flex: 1; padding: 8px;"
-                        onclick="deleteStudent({{ student.id }})">
+                        onclick="deleteStudent('{{ student.id }}')">
                         🗑️ Delete
                     </button>
                 </div>

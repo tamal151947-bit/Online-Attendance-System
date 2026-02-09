@@ -284,6 +284,9 @@ def update_student(student_id):
         
         # Update photo if provided
         if photo:
+            if not FACE_RECOGNITION_AVAILABLE:
+                return jsonify({'success': False, 'message': 'Face recognition not available for photo update'}), 503
+            
             # Read new photo into memory
             photo_bytes = photo.read()
             
@@ -311,6 +314,7 @@ def update_student(student_id):
                 # Store photo and encoding in MongoDB
                 update_data['photo_data'] = Binary(photo_bytes)
                 update_data['face_encoding'] = Binary(face_encodings[0].tobytes())
+                print(f"Updated photo and face encoding for student {student_id}")
                 
             except Exception as e:
                 return jsonify({'success': False, 'message': f'Error processing image: {str(e)}'}), 400
@@ -415,12 +419,17 @@ def mark_attendance():
         image = Image.open(BytesIO(image_bytes))
         image_np = np.array(image)
         
-        # Detect faces
-        face_locations = face_recognition.face_locations(image_np)
+        # Detect faces with more sensitive detection
+        face_locations = face_recognition.face_locations(image_np, model='hog')
+        
+        if len(face_locations) == 0:
+            return jsonify({'success': False, 'message': 'No faces detected in image'}), 400
+        
+        print(f"Detected {len(face_locations)} face(s) in image")
         face_encodings = face_recognition.face_encodings(image_np, face_locations)
         
         if len(face_encodings) == 0:
-            return jsonify({'success': False, 'message': 'No faces detected'}), 400
+            return jsonify({'success': False, 'message': 'Could not encode detected faces'}), 400
         
         marked_students = []
         today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -432,20 +441,38 @@ def mark_attendance():
         known_encodings = []
         student_map = {}
         
+        print(f"Found {len(students)} students in database with face encodings")
+        
         for idx, student in enumerate(students):
             if 'face_encoding' in student:
                 encoding = np.frombuffer(student['face_encoding'], dtype=np.float64)
                 known_encodings.append(encoding)
                 student_map[idx] = student
+                print(f"  - Loaded encoding for {student['name']} (Roll: {student['roll_number']})")
         
         # Match faces
-        for face_encoding in face_encodings:
+        for face_idx, face_encoding in enumerate(face_encodings):
             if len(known_encodings) == 0:
+                print("No known encodings to match against")
                 continue
             
+            # Use both distance and compare_faces for better accuracy
+            matches = face_recognition.compare_faces(known_encodings, face_encoding, tolerance=0.6)
             distances = face_recognition.face_distance(known_encodings, face_encoding)
-            best_match_index = np.argmin(distances)
-            best_distance = distances[best_match_index]
+            
+            print(f"\nFace {face_idx + 1} matching results:")
+            for i, (match, dist) in enumerate(zip(matches, distances)):
+                student = student_map[i]
+                print(f"  {student['name']}: match={match}, distance={dist:.3f}")
+            
+            # Find best match among the matches
+            if True in matches:
+                best_match_index = np.argmin(distances)
+                best_distance = distances[best_match_index]
+                print(f"  Best match: {student_map[best_match_index]['name']} (distance: {best_distance:.3f})")
+            else:
+                print(f"  No match found (all distances > 0.6)")
+                continue
             
             if best_distance < 0.6:  # Recognition threshold
                 student = student_map[best_match_index]
@@ -476,7 +503,10 @@ def mark_attendance():
                 'students': marked_students
             })
         else:
-            return jsonify({'success': False, 'message': 'No students matched'}), 400
+            if len(known_encodings) == 0:
+                return jsonify({'success': False, 'message': 'No students in database. Please register students first.'}), 400
+            else:
+                return jsonify({'success': False, 'message': 'No students matched. Ensure good lighting and face visibility.'}), 400
     
     except Exception as e:
         print(f"❌ Error marking attendance: {e}")

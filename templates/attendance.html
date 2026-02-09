@@ -85,6 +85,12 @@
         border: 1px solid #f5c6cb;
     }
 
+    .message.warning {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
     .stats {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -122,6 +128,10 @@
     <div class="stat">
         <div class="stat-label">Total Students</div>
         <div class="stat-value" id="total-count">-</div>
+    </div>
+    <div class="stat" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+        <div class="stat-label">Remaining</div>
+        <div class="stat-value" id="remaining-count">-</div>
     </div>
 </div>
 
@@ -290,6 +300,21 @@
             }
 
             document.getElementById('marked-count').textContent = attendance.length;
+
+            // Update remaining count
+            const totalResponse = await fetch('/api/students');
+            const students = await totalResponse.json();
+            const totalCount = students.length;
+            const remainingCount = totalCount - attendance.length;
+
+            document.getElementById('total-count').textContent = totalCount;
+            document.getElementById('remaining-count').textContent = remainingCount;
+
+            // Show warning if no students registered
+            if (totalCount === 0) {
+                showMessage('No students registered. Please add students in Admin Panel first.', 'warning');
+            }
+
         } catch (error) {
             console.error('Error loading students:', error);
         }
@@ -318,7 +343,10 @@
 
     function showMessage(message, type) {
         const container = document.getElementById('message-container');
-        const messageClass = type === 'success' ? 'success' : 'error';
+        let messageClass = 'error';
+        if (type === 'success') messageClass = 'success';
+        else if (type === 'warning') messageClass = 'warning';
+
         container.innerHTML = `<div class="message ${messageClass}">${message}</div>`;
 
         setTimeout(() => {
@@ -326,14 +354,7 @@
         }, 5000);
     }
 
-    // Load initial data
-    fetch('/api/students')
-        .then(r => r.json())
-        .then(students => {
-            document.getElementById('total-count').textContent = students.length;
-        });
-
-    // Load marked students on page load
+    // Load initial data on page load
     loadMarkedStudents();
 </script>
 {% endblock %}
