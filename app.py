@@ -1,9 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 from werkzeug.utils import secure_filename
 import os
-import face_recognition
-import numpy as np
-import cv2
 import base64
 from datetime import datetime, date
 from io import BytesIO
@@ -12,6 +9,21 @@ import json
 from pymongo import MongoClient
 from bson import ObjectId, Binary
 from dotenv import load_dotenv
+
+# Optional face recognition imports (for local development or paid tier)
+FACE_RECOGNITION_AVAILABLE = False
+try:
+    import face_recognition
+    import numpy as np
+    import cv2
+    FACE_RECOGNITION_AVAILABLE = True
+    print("✅ Face recognition libraries loaded successfully")
+except ImportError as e:
+    print(f"⚠️  Face recognition disabled: {e}")
+    print("   App will run without face recognition features")
+    # Create dummy imports for type hints
+    np = None
+    cv2 = None
 
 # Load environment variables
 load_dotenv()
@@ -156,6 +168,12 @@ def get_students():
 @app.route('/api/students/add', methods=['POST'])
 def add_student():
     """Add new student - stores photo in MongoDB cloud"""
+    if not FACE_RECOGNITION_AVAILABLE:
+        return jsonify({
+            'success': False, 
+            'message': 'Face recognition is not available on this deployment. Please upgrade to enable this feature or add students manually.'
+        }), 503
+    
     try:
         name = request.form.get('name')
         roll_number = request.form.get('roll_number')
@@ -378,6 +396,12 @@ def get_student_stats(student_id):
 @app.route('/api/attendance/mark', methods=['POST'])
 def mark_attendance():
     """Mark attendance from face recognition - all data in MongoDB"""
+    if not FACE_RECOGNITION_AVAILABLE:
+        return jsonify({
+            'success': False, 
+            'message': 'Face recognition is not available. Please use manual attendance or upgrade your deployment plan.'
+        }), 503
+    
     try:
         data = request.get_json()
         image_data = data.get('image')
