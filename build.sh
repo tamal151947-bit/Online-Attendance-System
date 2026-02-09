@@ -1,22 +1,10 @@
 #!/bin/bash
-# Render build script for face-recognition dependencies
+# Render build script - optimized for memory efficiency
 
 set -e  # Exit on error
 
-echo "🔧 Installing system dependencies..."
-
-# Install system packages needed for dlib and face-recognition
-apt-get update
-apt-get install -y \
-    build-essential \
-    cmake \
-    libopenblas-dev \
-    liblapack-dev \
-    libx11-dev \
-    libgtk-3-dev
-
-echo "📦 Installing Python packages..."
+echo "📦 Installing Python packages with pre-built wheels..."
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install --no-cache-dir -r requirements.txt
 
 echo "✅ Build completed successfully!"
