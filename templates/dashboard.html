@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <h3>Total Students</h3>
+        <span class="number">{{ total_students }}</span>
+    </div>
+    <div class="stat-card">
+        <h3>Present Today</h3>
+        <span class="number">{{ present_today }}</span>
+    </div>
+    <div class="stat-card">
+        <h3>Attendance %</h3>
+        <span class="number">{{ attendance_percentage }}%</span>
+    </div>
+</div>
+
+<h2 style="margin-top: 40px; margin-bottom: 20px; color: #2c3e50;">Welcome to Attendance System</h2>
+<p style="font-size: 18px; line-height: 1.8; color: #555;">
+    This is your face recognition-based attendance management system. You can:
+</p>
+
+<div style="margin-top: 30px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px;">
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #3498db;">
+            <h3 style="color: #2c3e50; margin-bottom: 10px;">⚙️ Manage Students</h3>
+            <p style="color: #555; margin-bottom: 15px;">Add new students, upload photos, and manage student
+                information.</p>
+            <a href="/admin" class="btn btn-primary">Go to Admin Panel</a>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #27ae60;">
+            <h3 style="color: #2c3e50; margin-bottom: 10px;">📷 Mark Attendance</h3>
+            <p style="color: #555; margin-bottom: 15px;">Use face recognition to automatically mark student attendance.
+            </p>
+            <a href="/attendance" class="btn btn-success">Mark Attendance</a>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #e67e22;">
+            <h3 style="color: #2c3e50; margin-bottom: 10px;">📈 View Reports</h3>
+            <p style="color: #555; margin-bottom: 15px;">Check attendance records and statistics for today and past
+                dates.</p>
+            <a href="/reports" class="btn btn-primary">View Reports</a>
+        </div>
+    </div>
+</div>
+
+<div style="margin-top: 50px; padding: 20px; background: #ecf0f1; border-radius: 10px;">
+    <h3 style="color: #2c3e50; margin-bottom: 10px;">📌 Quick Tips</h3>
+    <ul style="list-style: none; padding: 0; color: #555;">
+        <li style="margin-bottom: 8px;">✓ Add student photos with clear face visibility</li>
+        <li style="margin-bottom: 8px;">✓ Ensure good lighting during attendance marking</li>
+        <li style="margin-bottom: 8px;">✓ Students can only be marked once per day</li>
+        <li>✓ Check reports to verify attendance records</li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh dashboard stats every 10 seconds
+    async function updateDashboardStats() {
+        try {
+            // Get today's attendance count
+            const attendanceResponse = await fetch('/api/attendance/today');
+            const attendance = await attendanceResponse.json();
+
+            // Get total students
+            const studentsResponse = await fetch('/api/students');
+            const students = await studentsResponse.json();
+
+            // Update the stats
+            const presentToday = attendance.length;
+            const totalStudents = students.length;
+            const attendancePercentage = totalStudents > 0
+                ? ((presentToday / totalStudents) * 100).toFixed(1)
+                : 0;
+
+            // Update DOM elements
+            const statCards = document.querySelectorAll('.stat-card .number');
+            if (statCards[0]) statCards[0].textContent = totalStudents;
+            if (statCards[1]) statCards[1].textContent = presentToday;
+            if (statCards[2]) statCards[2].textContent = attendancePercentage + '%';
+
+        } catch (error) {
+            console.error('Error updating stats:', error);
+        }
+    }
+
+    // Update stats on page load
+    updateDashboardStats();
+
+    // Auto-refresh every 10 seconds
+    setInterval(updateDashboardStats, 10000);
+</script>
+{% endblock %}
