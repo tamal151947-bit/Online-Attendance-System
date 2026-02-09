@@ -186,7 +186,7 @@ Mobile app version
 
 Multi-class support
 
-##👨‍💻 Author
+## 👨‍💻 Author
 
 Tamal Kar
 
